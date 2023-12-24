@@ -1,10 +1,9 @@
-import NotesService.notes
 
 data class Chat(
     var chatId: Int = 0,
     var read: Boolean = false,
     var message: Message,
-
+    var companionId: Int = 0,
     ) {
 }
 
@@ -26,16 +25,21 @@ object chatService {
     var messagesId: Int = 0
     var chats = mutableListOf<Chat>()
     var chatsId: Int = 0
-    var messagesToDisplay = mutableListOf<Message>()
 
-    fun createMessage(chatId: Int, msg: Message): Int {
+
+    fun createMessage(msg: Message, companionId: Int): Int {
+
         for (chat in chats) {
-            if (chat.chatId == chatId) {
+            if (chat.companionId == companionId) {
                 messages.add(msg.copy(msgId = ++messagesId, parentChatId = chat.chatId))
                 return messages.last().msgId
             }
+             else {
+                var cId  = createChat(companionId, Chat (message = msg))
+                messages.add(msg.copy(msgId = ++messagesId, parentChatId =  cId))
+            }
         }
-        throw ChatNotFoundException("no chat with such ID $chatId")
+        return messages.last().msgId
     }
 
     fun editMessage(msg: Message, messaggeId: Int): Int {
@@ -58,7 +62,7 @@ object chatService {
         throw MessageNotFoundException("no message with such ID $messageId")
     }
 
-    fun createChat(userId: Int, chat: Chat): Int {
+    private fun createChat(userId: Int, chat: Chat): Int {
         chats.add(chat.copy(chatId = ++chatsId))
         return chats.last().chatId
     }
@@ -89,26 +93,39 @@ object chatService {
         return chats.filter(predicate).size
     }
 
-    fun getChats() {
-        for (chat in chats)
-            println(chat.chatId)
+    @JvmName("getChats1")
+    fun getChats(): List <Chat> {
+            return chats
     }
 
-    fun getLastMessages(chatId: Int): Int {
+    fun getLastMessages(chatId: Int): List <Message> {
         val predicate = fun(msg: Message): Boolean {
             return (messages.size - msg.msgId < 4)
         }
 
         for (chat in chats) {
             if (chat.chatId == chatId) {
-                messages.filter(predicate)
+                return messages.filter(predicate)
             }
-            return 1
+
         }
         throw ChatNotFoundException("no note with such ID $chatId")
     }
 
     fun getMessagesList(chatId: Int, cmpnID: Int): Int {
+
+        var messagesToDisplay = mutableListOf<Message>()
+
+        chats
+            .find { it.chatId == chatId }
+            .let { chat ->
+                chat ?: throw ChatNotFoundException("Чат не найден")
+                return@let messages
+            }
+            .filter { it.parentChatId == chatId }
+            .takeLast(cmpnID)
+            .onEach { it.read = true }
+
         for (chat in chats) {
             if (chat.chatId == chatId) {
                 for (message in messages) {
@@ -122,5 +139,4 @@ object chatService {
         }
         throw MessageNotFoundException("no message with such companionID $cmpnID")
     }
-
 }
