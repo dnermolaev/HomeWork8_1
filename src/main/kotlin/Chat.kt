@@ -100,16 +100,12 @@ object chatService {
         var messagesWithId = mutableListOf<Message>()
 
         val predicate = fun(msg: Message): Boolean {
-            if (msg.parentChatId == chatId) {
-                messagesWithId.add(msg.copy())
+            return msg.parentChatId == chatId
             }
-            return (messagesWithId.size - msg.msgId < 4)
-        }
         for (chat in chats) {
             if (chat.chatId == chatId) {
-                return messages.filter(predicate)
+                return messages.filter(predicate).takeLast(5)
             }
-
         }
         throw ChatNotFoundException("no chat with such ID $chatId")
     }
