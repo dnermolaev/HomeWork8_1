@@ -1,17 +1,16 @@
 data class Chat(
     var chatId: Int = 0,
-    var read: Boolean = false,
     var companionId: Int = 0,
-) {
+    val messages: MutableList<Message> = mutableListOf()
+)  {
 }
 
 data class Message(
-    var companionId: Int = 0,
     var read: Boolean = false,
     var msgId: Int = 0,
-    var parentChatId: Int = 0
+    var parentChatId: Int = 0,
+    var text: String
 ) {
-
 }
 
 class ChatNotFoundException(message: String) : RuntimeException(message)
@@ -79,52 +78,22 @@ object chatService {
         throw ChatNotFoundException("no note with such ID $chatId")
     }
 
-    fun getUnreadChatsCount(chat: Chat): Int {
-        val predicate = fun(chat: Chat): Boolean {
-            for (message in messages) {
-                if (!message.read && message.parentChatId == chat.chatId) {
-                    return false
-                }
-            }
-            return true
-        }
-        return chats.filter(predicate).size
-    }
+    fun getUnreadChatsCount() = chats.count { it -> it.messages.any{!it.read} }
 
     @JvmName("getChats1")
     fun getChats(): List<Chat> {
         return chats
     }
 
-    fun getLastMessages(chatId: Int): List<Message> {
-        var messagesWithId = mutableListOf<Message>()
+    fun getLastMessages(): List<String> = chats.map { it.messages.lastOrNull()?.text ?: "no messages" }
 
-        val predicate = fun(msg: Message): Boolean {
-            if (msg.parentChatId == chatId) {
-                messagesWithId.add(msg.copy())
-            }
-            return (messagesWithId.size - msg.msgId < 4)
-        }
-        for (chat in chats) {
-            if (chat.chatId == chatId) {
-                return messages.filter(predicate)
-            }
-
-        }
-        throw ChatNotFoundException("no chat with such ID $chatId")
-    }
-
-    fun getMessagesList(chatId: Int, cmpnID: Int): List<Message> {
-        val chat = chats.find { it.chatId == chatId }
+    fun getMessagesList(cmpnID: Int, count: Int): List<Message> {
+        val chat = chats.find { it.companionId == cmpnID  }
             ?: throw ChatNotFoundException("Чат не найден")
 
-        val messagesToDisplay = messages
-            .filter { it.parentChatId == chatId }
-            .takeLast(cmpnID)
-            .ifEmpty { throw MessageNotFoundException("no message with such companionID $cmpnID") }
-            .onEach { it.read = true }
-
-        return messagesToDisplay
+                return chat.messages
+                .takeLast(count)
+                .onEach { it.read = true }
     }
 }
 
