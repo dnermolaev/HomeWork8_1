@@ -88,11 +88,13 @@ object chatService {
     fun getLastMessages(): List<String> = chats.map { it.messages.lastOrNull()?.text ?: "no messages" }
 
     fun getMessagesList(cmpnID: Int, count: Int): List<Message> {
-        val chat = chats.find { it.companionId == cmpnID  }
+        val chat = chats.asReversed()
+            .asSequence()
+            .find { it.companionId == cmpnID  }
             ?: throw ChatNotFoundException("Чат не найден")
 
                 return chat.messages
-                .takeLast(count)
+                .take(count)
                 .onEach { it.read = true }
     }
 }
