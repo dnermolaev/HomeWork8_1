@@ -85,12 +85,30 @@ object chatService {
         return chats
     }
 
+
     fun getLastMessages(): List<String> = chats.map { it.messages.lastOrNull()?.text ?: "no messages" }
 
     fun getMessagesList(cmpnID: Int, count: Int): List<Message> {
         val chat = chats.asReversed()
             .asSequence()
             .find { it.companionId == cmpnID  }
+
+    fun getLastMessages(chatId: Int): List<Message> {
+        var messagesWithId = mutableListOf<Message>()
+
+        val predicate = fun(msg: Message): Boolean {
+            return msg.parentChatId == chatId
+            }
+        for (chat in chats) {
+            if (chat.chatId == chatId) {
+                return messages.filter(predicate).takeLast(5)
+            }
+        }
+        throw ChatNotFoundException("no chat with such ID $chatId")
+    }
+
+    fun getMessagesList(chatId: Int, cmpnID: Int): List<Message> {
+        val chat = chats.find { it.chatId == chatId }
             ?: throw ChatNotFoundException("Чат не найден")
 
                 return chat.messages
